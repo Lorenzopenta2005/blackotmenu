@@ -110,17 +110,22 @@ const db = {
       .update(patch)
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!data) throw new Error('Nessuna voce trovata da aggiornare');
     return data;
   },
 
   deleteMenuItem: async (id) => {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('menu_generale')
       .delete()
-      .eq('id', id);
+      .eq('id', id)
+      .select()
+      .maybeSingle();
     if (error) throw new Error(error.message);
+    if (!data) throw new Error('La voce non esiste o era già stata eliminata');
+    return data;
   },
 
   toggleMenuItem: async (id) => {
@@ -128,15 +133,17 @@ const db = {
       .from('menu_generale')
       .select('id, name, available')
       .eq('id', id)
-      .single();
-    if (errRead || !item) throw new Error('Voce menu non trovata');
+      .maybeSingle();
+    if (errRead) throw new Error(errRead.message);
+    if (!item) throw new Error('Voce menu non trovata');
     const { data: updated, error: errUpd } = await supabase
       .from('menu_generale')
       .update({ available: !item.available })
       .eq('id', id)
       .select()
-      .single();
+      .maybeSingle();
     if (errUpd) throw new Error(errUpd.message);
+    if (!updated) throw new Error('Salvataggio fallito. Assicurati di aver inserito la "service_role" key in .env (non la anon key).');
     return updated;
   },
 };
@@ -212,7 +219,9 @@ app.post('/api/admin/menu', requireAdmin, async (req, res) => {
       price: parseFloat(price),
       macro_category, sub_category, available,
     });
+    if (!item) throw new Error('Salvataggio fallito. Verifica la service_role key nel file .env.');
     io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    io.emit('admin_menu_aggiornato', await db.getMenuAdmin());
     logger.info(`Menu aggiunto: ${item.name} [${item.macro_category}/${item.sub_category}]`);
     res.status(201).json({ success: true, data: item });
   } catch (err) { logger.error('POST /api/admin/menu', err); res.status(400).json({ success: false, message: err.message }); }
@@ -225,6 +234,7 @@ app.put('/api/admin/menu/:id', requireAdmin, async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ success: false, message: 'ID non valido' });
     const updated = await db.updateMenuItem(id, req.body);
     io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    io.emit('admin_menu_aggiornato', await db.getMenuAdmin());
     logger.info(`Menu aggiornato: id=${id}`);
     res.json({ success: true, data: updated });
   } catch (err) { logger.error('PUT /api/admin/menu/:id', err); res.status(400).json({ success: false, message: err.message }); }
@@ -237,6 +247,7 @@ app.delete('/api/admin/menu/:id', requireAdmin, async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ success: false, message: 'ID non valido' });
     await db.deleteMenuItem(id);
     io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    io.emit('admin_menu_aggiornato', await db.getMenuAdmin());
     logger.info(`Menu eliminato: id=${id}`);
     res.json({ success: true, message: 'Voce eliminata' });
   } catch (err) { logger.error('DELETE /api/admin/menu/:id', err); res.status(400).json({ success: false, message: err.message }); }
@@ -249,13 +260,15 @@ app.post('/api/admin/menu/:id/toggle', requireAdmin, async (req, res) => {
     if (isNaN(id)) return res.status(400).json({ success: false, message: 'ID non valido' });
     const updated = await db.toggleMenuItem(id);
     io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    // Emette un evento separato per l'admin con tutto il menu
+    io.emit('admin_menu_aggiornato', await db.getMenuAdmin());
     logger.info(`Menu toggle: id=${id} → available=${updated.available}`);
     res.json({ success: true, data: updated });
   } catch (err) { logger.error('POST /api/admin/menu/:id/toggle', err); res.status(400).json({ success: false, message: err.message }); }
 });
 
 // =============================================================================
-// SOCKET.IO
+// SOCKET.IO & SUPABASE REALTIME
 // =============================================================================
 
 io.on('connection', async (socket) => {
@@ -267,6 +280,17 @@ io.on('connection', async (socket) => {
   }
   socket.on('disconnect', () => logger.info(`Socket disconnesso: ${socket.id}`));
 });
+
+// Ascolta in tempo reale le modifiche del database (es. fatte dalla dashboard Supabase)
+// e aggiorna istantaneamente tutti i clienti e admin connessi
+supabase
+  .channel('public:menu_generale')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'menu_generale' }, async (payload) => {
+    logger.info(`Supabase Realtime event: ${payload.eventType}`);
+    io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    io.emit('admin_menu_aggiornato', await db.getMenuAdmin());
+  })
+  .subscribe();
 
 // =============================================================================
 // ERROR HANDLER & START

@@ -11,64 +11,63 @@
       --black: #000000; --white: #ffffff; --red: #ff0000;
       --gray: #888888; --muted: #444444; --card: #0d0d0d; --border: #1a1a1a;
     }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: auto; /* removed smooth scrolling to prevent jarring jumps */ }
     body { font-family: 'Segoe UI', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
 
-    /* ── HERO ── */
-    .hero { text-align: center; padding: 48px 20px 32px; border-bottom: 1px solid var(--border); }
-    .logo { font-size: 3.5rem; letter-spacing: 4px; font-weight: 900; color: var(--white); text-transform: uppercase; line-height: 1; }
-    .flipped-k { color: var(--red); display: inline-block; transform: scaleX(-1); }
-    .hero-subtitle { font-size: 0.7rem; letter-spacing: 6px; color: var(--gray); text-transform: uppercase; margin-top: 12px; }
-    .live-badge { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; padding: 4px 14px; border: 1px solid rgba(255,0,0,0.3); border-radius: 20px; font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: var(--gray); }
-    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); animation: blink 2s infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+    /* ── HEADER WRAPPER (STICKY TOP) ── */
+    #headerWrapper {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(0, 0, 0, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--border);
+    }
 
-    /* ── MACRO PICKER ── */
+    /* ── MACRO PICKER (GIANT BUTTONS) ── */
     .macro-wrap {
       display: flex;
       justify-content: center;
-      padding: 36px 16px 28px;
+      padding: 12px 16px;
     }
     .macro-row {
       display: flex;
-      gap: 16px;
+      gap: 12px;
       width: 100%;
-      max-width: 480px;
+      max-width: 600px;
     }
     .tab-btn {
       flex: 1;
-      padding: 18px 10px;
-      border-radius: 10px;
-      font-size: 1rem;
+      padding: 12px;
+      min-height: 64px;
+      border-radius: 12px;
+      font-size: 1.15rem; /* 18-20px equivalent */
       font-weight: 800;
-      letter-spacing: 3px;
+      letter-spacing: 1px;
       text-transform: uppercase;
       cursor: pointer;
-      transition: transform 0.12s, box-shadow 0.2s, background 0.2s;
+      transition: background 0.1s, color 0.1s;
       white-space: nowrap;
-      background: var(--black);
-      color: var(--white);
-      border: 2px solid var(--red);
+      
+      /* Inactive (Elderly friendly: clearly disabled/greyed out) */
+      background: #2a2a2a; 
+      color: #666666;
+      border: 3px solid #2a2a2a;
     }
-    .tab-btn:hover { border-color: #ff4444; }
-    .tab-btn:active { transform: scale(0.95); }
     .tab-btn.active {
+      /* Active (Elderly friendly: high contrast, solid bright red) */
       background: var(--red);
       color: var(--white);
       border-color: var(--red);
-      box-shadow: 0 0 18px rgba(255,0,0,0.55);
+      box-shadow: 0 4px 16px rgba(255,0,0,0.4);
     }
 
     /* ── STICKY SUB-NAV ── */
     .subnav {
-      position: sticky;
-      top: 0;
-      z-index: 40;
-      background: rgba(0,0,0,0.92);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
       display: none; /* shown when a macro is active */
+      border-top: 1px solid var(--border);
+      background: rgba(10, 10, 10, 0.95);
     }
     .subnav.visible { display: block; }
     .subnav-inner {
@@ -82,81 +81,76 @@
     }
     .subnav-inner::-webkit-scrollbar { display: none; }
 
-    .back-btn {
-      flex-shrink: 0;
-      padding: 10px 12px;
-      background: transparent;
-      border: none;
-      color: var(--gray);
-      font-size: 1rem;
-      cursor: pointer;
-      transition: color 0.2s;
-      border-right: 1px solid var(--border);
-      margin-right: 8px;
-    }
-    .back-btn:hover { color: var(--white); }
-
     .subnav-pills {
       display: inline-flex;
-      gap: 6px;
-      padding: 10px 4px;
+      gap: 8px;
+      padding: 12px 4px;
       min-width: max-content;
     }
     .subnav-btn {
-      padding: 6px 16px;
-      border: 1px solid var(--border);
-      border-radius: 20px;
+      padding: 8px 18px;
+      border: 2px solid var(--muted);
+      border-radius: 25px;
       background: transparent;
-      color: var(--muted);
-      font-size: 0.62rem;
-      font-weight: 600;
-      letter-spacing: 2px;
+      color: #aaaaaa;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 1px;
       text-transform: uppercase;
       cursor: pointer;
       white-space: nowrap;
-      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      transition: background 0.1s, color 0.1s, border-color 0.1s;
     }
-    .subnav-btn:hover { color: var(--white); border-color: #333; }
-    .subnav-btn.active { background: var(--red); border-color: var(--red); color: var(--white); }
+    .subnav-btn.active { 
+      background: var(--white); 
+      border-color: var(--white); 
+      color: var(--black); 
+    }
+
+    /* ── HERO ── */
+    .hero { text-align: center; padding: 32px 20px 24px; }
+    .logo { font-size: 3rem; letter-spacing: 4px; font-weight: 900; color: var(--white); text-transform: uppercase; line-height: 1; }
+    .flipped-k { color: var(--red); display: inline-block; transform: scaleX(-1); }
+    .live-badge { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; padding: 4px 14px; border: 1px solid rgba(255,0,0,0.3); border-radius: 20px; font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: var(--gray); }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
 
     /* ── PAGE & SECTIONS ── */
     .page { padding: 0 16px 80px; max-width: 760px; margin: 0 auto; }
 
-    /* macro picker view */
-    #macroView { display: block; }
-    /* menu content view */
-    #menuView { display: none; }
-    #menuView.visible { display: block; }
-
     .macro-hint {
       text-align: center;
-      padding: 20px 0 0;
-      font-size: 0.65rem;
-      letter-spacing: 4px;
-      color: #222;
+      padding: 40px 20px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--gray);
       text-transform: uppercase;
-      animation: swipePulse 2.5s ease-in-out infinite;
     }
-    @keyframes swipePulse { 0%,100%{opacity:.3} 50%{opacity:.9} }
 
     /* ── CATEGORY SECTION ── */
-    .cat-section { padding-top: 32px; }
+    .cat-section { 
+      padding-top: 24px; 
+      display: none; /* Hidden by default, shown by JS */
+      animation: fadeIn .3s ease;
+    }
+    @keyframes fadeIn { from{opacity:0;} to{opacity:1;} }
+    
     .cat-heading {
       display: flex;
       align-items: center;
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 20px;
       padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
     .cat-heading-label {
-      font-size: 0.62rem;
-      font-weight: 700;
-      letter-spacing: 4px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: 2px;
       color: var(--red);
       text-transform: uppercase;
     }
-    .cat-heading-line { flex: 1; height: 1px; background: var(--border); }
+    .cat-heading-line { flex: 1; height: 2px; background: var(--border); }
 
     /* ── ITEM ROW ── */
     .item-row {
@@ -165,87 +159,81 @@
       gap: 14px;
       background: var(--card);
       border: 1px solid var(--border);
-      border-left: 3px solid var(--red);
+      border-left: 4px solid var(--red);
       border-radius: 10px;
-      padding: 14px 18px;
-      margin-bottom: 10px;
-      transition: border-color .2s, background .2s;
-      animation: fadeUp .2s ease;
+      padding: 16px 18px;
+      margin-bottom: 12px;
     }
-    .item-row:hover { background: #111; border-left-color: var(--white); }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 
     .item-info { flex: 1; min-width: 0; }
     .item-name {
-      font-size: 0.95rem;
-      font-weight: 700;
+      font-size: 1.1rem;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       color: var(--white);
     }
     .item-desc {
-      font-size: 0.75rem;
-      color: var(--gray);
-      margin-top: 4px;
-      line-height: 1.45;
+      font-size: 0.85rem;
+      color: #bbbbbb;
+      margin-top: 6px;
+      line-height: 1.4;
     }
     .item-price {
-      font-size: 1.15rem;
-      font-weight: 700;
+      font-size: 1.25rem;
+      font-weight: 800;
       color: var(--white);
       white-space: nowrap;
       flex-shrink: 0;
     }
 
-    .list-empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; }
+    .list-empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; }
 
     /* ── FOOTER ── */
-    footer { text-align: center; padding: 24px 16px; color: var(--muted); font-size: 0.6rem; letter-spacing: 5px; text-transform: uppercase; border-top: 1px solid var(--border); }
+    footer { text-align: center; padding: 24px 16px; color: var(--muted); font-size: 0.7rem; letter-spacing: 5px; text-transform: uppercase; border-top: 1px solid var(--border); }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 480px) {
-      .tab-btn { padding: 14px 8px; font-size: 0.85rem; letter-spacing: 2px; }
-      .item-name { font-size: 0.88rem; }
+      .tab-btn { font-size: 1rem; min-height: 60px; padding: 10px; }
+      .subnav-btn { font-size: 0.8rem; padding: 6px 14px; }
+      .item-name { font-size: 1rem; }
     }
   </style>
 </head>
 <body>
 
-  <!-- HERO -->
-  <div class="hero">
-    <h1 class="logo">BLAC<span class="flipped-k">K</span>OUT</h1>
-    <p class="hero-subtitle">Cibo &amp; Drink</p>
-    <div class="live-badge">
-      <span class="live-dot"></span>
-      <span id="statusText">Connessione...</span>
-    </div>
-  </div>
-
-  <!-- STICKY SUB-NAV (hidden until macro selected) -->
-  <div class="subnav" id="subnav" role="navigation" aria-label="Sottocategorie">
-    <div class="subnav-inner">
-      <button class="back-btn" id="backBtn" aria-label="Torna alla selezione">&#8592;</button>
-      <div class="subnav-pills" id="subnavPills"></div>
-    </div>
-  </div>
-
-  <div class="page">
-
-    <!-- MACRO SELECTION VIEW -->
-    <div id="macroView">
-      <div class="macro-wrap" style="padding-top:28px;">
-        <div class="macro-row">
-          <button class="tab-btn" id="btnCucina" onclick="selectMacro('Cucina', this)">🍔 Cucina</button>
-          <button class="tab-btn" id="btnDrink"  onclick="selectMacro('Drink', this)">🍹 Drink</button>
-        </div>
+  <!-- STICKY HEADER WRAPPER -->
+  <div id="headerWrapper">
+    <!-- MACRO PICKER -->
+    <div class="macro-wrap">
+      <div class="macro-row">
+        <button class="tab-btn" id="btnCucina" onclick="selectMacro('Cucina', this)">CUCINA (Cibo)</button>
+        <button class="tab-btn" id="btnDrink"  onclick="selectMacro('Drink', this)">DRINK (Bevande)</button>
       </div>
-      <p class="macro-hint">Seleziona una categoria</p>
+    </div>
+    
+    <!-- SUB-NAV (Hidden until macro is selected) -->
+    <div class="subnav" id="subnav" role="navigation" aria-label="Sottocategorie">
+      <div class="subnav-inner">
+        <div class="subnav-pills" id="subnavPills"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN PAGE -->
+  <div class="page">
+    
+    <div class="hero" id="heroSection">
+      <h1 class="logo">BLAC<span class="flipped-k">K</span>OUT</h1>
+      <div class="live-badge">
+        <span class="live-dot"></span>
+        <span id="statusText">Connessione...</span>
+      </div>
     </div>
 
-    <!-- MENU CONTENT VIEW -->
-    <div id="menuView">
-      <div id="menuContainer"></div>
-    </div>
+    <div class="macro-hint" id="macroHint">Seleziona una categoria in alto per iniziare</div>
+    
+    <div id="menuContainer"></div>
 
   </div>
 
@@ -255,9 +243,9 @@
   <script>
     const socket = io();
 
-    let _allItems      = [];   // tutti gli items disponibili
-    let _activeMacro   = null; // 'Cucina' | 'Drink'
-    let _observer      = null; // IntersectionObserver per scroll-spy
+    let _allItems      = [];   
+    let _activeMacro   = null; 
+    let _activeSubSlug = null;
 
     /* ── Socket ── */
     socket.on('connect',    () => { document.getElementById('statusText').textContent = 'Live'; });
@@ -272,7 +260,13 @@
       try {
         const res = await fetch('/api/menu');
         const data = await res.json();
-        if (data.success) _allItems = data.data;
+        if (data.success) {
+          _allItems = data.data;
+          // Auto-select Cucina if it's the first time
+          if (!_activeMacro) {
+            selectMacro('Cucina', document.getElementById('btnCucina'));
+          }
+        }
       } catch(e) { console.error('Init fetch error', e); }
     })();
 
@@ -280,68 +274,65 @@
     function selectMacro(macro, btn) {
       _activeMacro = macro;
 
-      // Swap views
-      document.getElementById('macroView').style.display = 'none';
-      document.getElementById('menuView').classList.add('visible');
+      // Nascondi suggerimento e hero per dare spazio al menu
+      document.getElementById('macroHint').style.display = 'none';
+      document.getElementById('heroSection').style.display = 'none';
 
-      // Show & update sticky nav
+      // Mostra la sub-navbar
       document.getElementById('subnav').classList.add('visible');
 
-      // Highlight button (in case re-selected)
+      // Colora il bottone corretto
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
 
       renderMenu(macro);
     }
 
-    /* ── Back to macro picker ── */
-    document.getElementById('backBtn').addEventListener('click', () => {
-      _activeMacro = null;
-      document.getElementById('macroView').style.display = '';
-      document.getElementById('menuView').classList.remove('visible');
-      document.getElementById('menuContainer').innerHTML = '';
-      document.getElementById('subnav').classList.remove('visible');
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      if (_observer) { _observer.disconnect(); _observer = null; }
-    });
-
     /* ── Render menu for given macro ── */
     function renderMenu(macro) {
-      const filtered = _allItems.filter(i => i.macro_category === macro);
+      // 1. Filtra per macrocategoria e mappa "Dolci Classici"/"Dolci Homemade" in "Dolci"
+      let filtered = _allItems.filter(i => i.macro_category === macro);
+      if (macro === 'Cucina') {
+        filtered = filtered.map(item => {
+          if (item.sub_category === 'Dolci Classici' || item.sub_category === 'Dolci Homemade') {
+            return { ...item, sub_category: 'Dolci' };
+          }
+          return item;
+        });
+      }
+
       const container = document.getElementById('menuContainer');
       container.innerHTML = '';
 
-      // Group by sub_category (preserving DB order)
-      const groups = [];
-      const seen = {};
-      filtered.forEach(item => {
-        if (!seen[item.sub_category]) {
-          seen[item.sub_category] = true;
-          groups.push({ sub: item.sub_category, items: [] });
-        }
-        groups[groups.length - 1].items.push(item);
-      });
-
-      // Fix: re-group properly (items above buckets into wrong group)
-      const grouped = {};
-      filtered.forEach(item => {
-        if (!grouped[item.sub_category]) grouped[item.sub_category] = [];
-        grouped[item.sub_category].push(item);
-      });
-      // Unique ordered sub_categories
-      const subCats = [];
-      filtered.forEach(item => {
-        if (!subCats.includes(item.sub_category)) subCats.push(item.sub_category);
-      });
-
-      if (!subCats.length) {
+      if (!filtered.length) {
         container.innerHTML = '<div class="list-empty">Nessun prodotto disponibile</div>';
         buildSubnav([]);
         return;
       }
 
+      // 2. Raggruppa gli item
+      const grouped = {};
+      filtered.forEach(item => {
+        if (!grouped[item.sub_category]) grouped[item.sub_category] = [];
+        grouped[item.sub_category].push(item);
+      });
+
+      // 3. Applica l'ordinamento tassativo richiesto
+      const sortOrder = ['Fuori Menu', 'Hamburger', 'Piade e Panini', 'Vegan', 'Insalate', 'Fritti', 'Dolci'];
+      const rawSubCats = Object.keys(grouped);
+      const subCats = rawSubCats.sort((a, b) => {
+        let idxA = sortOrder.indexOf(a);
+        let idxB = sortOrder.indexOf(b);
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        if (idxA !== idxB) return idxA - idxB;
+        return a.localeCompare(b);
+      });
+
+      // 4. Costruisci la barra delle sottocategorie
       buildSubnav(subCats);
 
+      // 5. Crea i blocchi (div) per ogni sottocategoria, tutti nascosti di default
       subCats.forEach(sub => {
         const slug = slugify(sub);
         const section = document.createElement('div');
@@ -387,61 +378,50 @@
         container.appendChild(section);
       });
 
-      // Init scroll-spy after render
-      requestAnimationFrame(() => initScrollSpy(subCats));
+      // 6. Mostra la sottocategoria corretta. Se stavamo visualizzando una categoria, 
+      // proviamo a mantenerla. Altrimenti auto-selezioniamo la prima.
+      let slugToSelect = slugify(subCats[0]);
+      if (_activeSubSlug && subCats.some(s => slugify(s) === _activeSubSlug)) {
+        slugToSelect = _activeSubSlug;
+      }
+      selectSubCategory(slugToSelect);
     }
 
     /* ── Build sticky sub-nav pills ── */
     function buildSubnav(subCats) {
       const pills = document.getElementById('subnavPills');
       pills.innerHTML = '';
-      subCats.forEach((sub, i) => {
+      subCats.forEach((sub) => {
         const slug = slugify(sub);
         const btn = document.createElement('button');
-        btn.className = 'subnav-btn' + (i === 0 ? ' active' : '');
+        btn.className = 'subnav-btn';
         btn.dataset.slug = slug;
         btn.textContent = sub;
-        btn.addEventListener('click', () => scrollToSection(slug));
+        btn.addEventListener('click', () => selectSubCategory(slug));
         pills.appendChild(btn);
       });
     }
 
-    function scrollToSection(slug) {
+    /* ── True Tabbed View Logic (No scrolling feeds) ── */
+    function selectSubCategory(slug) {
+      _activeSubSlug = slug;
+
+      // 1. Nascondi tutte le sezioni e mostra solo quella selezionata
+      document.querySelectorAll('.cat-section').forEach(sec => sec.style.display = 'none');
       const target = document.getElementById('sub-' + slug);
-      if (!target) return;
-      // offset for sticky subnav height
-      const navH = document.getElementById('subnav').offsetHeight;
-      const top = target.getBoundingClientRect().top + window.scrollY - navH - 8;
-      window.scrollTo({ top, behavior: 'smooth' });
-    }
+      if (target) target.style.display = 'block';
 
-    /* ── Scroll-spy via IntersectionObserver ── */
-    function initScrollSpy(subCats) {
-      if (_observer) _observer.disconnect();
-
-      const navH = document.getElementById('subnav').offsetHeight;
-
-      _observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const slug = entry.target.id.replace('sub-', '');
-            document.querySelectorAll('.subnav-btn').forEach(btn => {
-              btn.classList.toggle('active', btn.dataset.slug === slug);
-            });
-            // Scroll the active pill into view horizontally
-            const activeBtn = document.querySelector('.subnav-btn.active');
-            if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
-          }
-        });
-      }, {
-        rootMargin: `-${navH + 4}px 0px -60% 0px`,
-        threshold: 0,
+      // 2. Colora il pill corretto nella subnav
+      document.querySelectorAll('.subnav-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.slug === slug);
       });
 
-      subCats.forEach(sub => {
-        const el = document.getElementById('sub-' + slugify(sub));
-        if (el) _observer.observe(el);
-      });
+      // 3. Assicurati che il bottone selezionato sia visibile nello scroll orizzontale
+      const activeBtn = document.querySelector('.subnav-btn.active');
+      if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+
+      // 4. Scroll automatico verso l'inizio del container per comodità
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
 
     /* ── Utilities ── */

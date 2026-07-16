@@ -264,7 +264,9 @@
     </div>
   </div>
 
+  <script src="/socket.io/socket.io.js"></script>
   <script>
+    const socket = io();
     let adminPassword = null;
     let menuItems     = [];   // tutti gli items (admin view)
 
@@ -310,6 +312,15 @@
       renderSection('Cucina');
       renderSection('Drink');
     }
+
+    // Ascolta eventi in tempo reale per aggiornare l'admin panel se un altro admin o Supabase modifica i dati
+    socket.on('admin_menu_aggiornato', (items) => {
+      if (!adminPassword) return; // ignora se non loggato
+      menuItems = items || [];
+      renderAll();
+      // Mostra una notifica sottile
+      console.log('Menu aggiornato in tempo reale');
+    });
 
     function renderSection(macro) {
       const key   = macro.toLowerCase();
