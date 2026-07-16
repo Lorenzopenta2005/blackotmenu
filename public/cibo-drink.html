@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlackOut Pub — Cibo & Drink</title>
+  <meta name="description" content="Menu cibo e drink del BlackOut Pub: hamburger, cocktail, gin, vini e molto altro.">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --black: #000000; --white: #ffffff; --red: #ff0000;
+      --gray: #888888; --muted: #444444; --card: #0d0d0d; --border: #1a1a1a;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', sans-serif; background: var(--black); color: var(--white); min-height: 100vh; }
+
+    /* ── HERO ── */
+    .hero { text-align: center; padding: 48px 20px 32px; border-bottom: 1px solid var(--border); }
+    .logo { font-size: 3.5rem; letter-spacing: 4px; font-weight: 900; color: var(--white); text-transform: uppercase; line-height: 1; }
+    .flipped-k { color: var(--red); display: inline-block; transform: scaleX(-1); }
+    .hero-subtitle { font-size: 0.7rem; letter-spacing: 6px; color: var(--gray); text-transform: uppercase; margin-top: 12px; }
+    .live-badge { display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; padding: 4px 14px; border: 1px solid rgba(255,0,0,0.3); border-radius: 20px; font-size: 0.65rem; letter-spacing: 3px; text-transform: uppercase; color: var(--gray); }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); animation: blink 2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* ── MACRO PICKER ── */
+    .macro-wrap {
+      display: flex;
+      justify-content: center;
+      padding: 36px 16px 28px;
+    }
+    .macro-row {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 18px 10px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 800;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 0.12s, box-shadow 0.2s, background 0.2s;
+      white-space: nowrap;
+      background: var(--black);
+      color: var(--white);
+      border: 2px solid var(--red);
+    }
+    .tab-btn:hover { border-color: #ff4444; }
+    .tab-btn:active { transform: scale(0.95); }
+    .tab-btn.active {
+      background: var(--red);
+      color: var(--white);
+      border-color: var(--red);
+      box-shadow: 0 0 18px rgba(255,0,0,0.55);
+    }
+
+    /* ── STICKY SUB-NAV ── */
+    .subnav {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(0,0,0,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: none; /* shown when a macro is active */
+    }
+    .subnav.visible { display: block; }
+    .subnav-inner {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .subnav-inner::-webkit-scrollbar { display: none; }
+
+    .back-btn {
+      flex-shrink: 0;
+      padding: 10px 12px;
+      background: transparent;
+      border: none;
+      color: var(--gray);
+      font-size: 1rem;
+      cursor: pointer;
+      transition: color 0.2s;
+      border-right: 1px solid var(--border);
+      margin-right: 8px;
+    }
+    .back-btn:hover { color: var(--white); }
+
+    .subnav-pills {
+      display: inline-flex;
+      gap: 6px;
+      padding: 10px 4px;
+      min-width: max-content;
+    }
+    .subnav-btn {
+      padding: 6px 16px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+    }
+    .subnav-btn:hover { color: var(--white); border-color: #333; }
+    .subnav-btn.active { background: var(--red); border-color: var(--red); color: var(--white); }
+
+    /* ── PAGE & SECTIONS ── */
+    .page { padding: 0 16px 80px; max-width: 760px; margin: 0 auto; }
+
+    /* macro picker view */
+    #macroView { display: block; }
+    /* menu content view */
+    #menuView { display: none; }
+    #menuView.visible { display: block; }
+
+    .macro-hint {
+      text-align: center;
+      padding: 20px 0 0;
+      font-size: 0.65rem;
+      letter-spacing: 4px;
+      color: #222;
+      text-transform: uppercase;
+      animation: swipePulse 2.5s ease-in-out infinite;
+    }
+    @keyframes swipePulse { 0%,100%{opacity:.3} 50%{opacity:.9} }
+
+    /* ── CATEGORY SECTION ── */
+    .cat-section { padding-top: 32px; }
+    .cat-heading {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .cat-heading-label {
+      font-size: 0.62rem;
+      font-weight: 700;
+      letter-spacing: 4px;
+      color: var(--red);
+      text-transform: uppercase;
+    }
+    .cat-heading-line { flex: 1; height: 1px; background: var(--border); }
+
+    /* ── ITEM ROW ── */
+    .item-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--red);
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      transition: border-color .2s, background .2s;
+      animation: fadeUp .2s ease;
+    }
+    .item-row:hover { background: #111; border-left-color: var(--white); }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+    .item-info { flex: 1; min-width: 0; }
+    .item-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--white);
+    }
+    .item-desc {
+      font-size: 0.75rem;
+      color: var(--gray);
+      margin-top: 4px;
+      line-height: 1.45;
+    }
+    .item-price {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--white);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .list-empty { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; }
+
+    /* ── FOOTER ── */
+    footer { text-align: center; padding: 24px 16px; color: var(--muted); font-size: 0.6rem; letter-spacing: 5px; text-transform: uppercase; border-top: 1px solid var(--border); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 480px) {
+      .tab-btn { padding: 14px 8px; font-size: 0.85rem; letter-spacing: 2px; }
+      .item-name { font-size: 0.88rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1 class="logo">BLAC<span class="flipped-k">K</span>OUT</h1>
+    <p class="hero-subtitle">Cibo &amp; Drink</p>
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      <span id="statusText">Connessione...</span>
+    </div>
+  </div>
+
+  <!-- STICKY SUB-NAV (hidden until macro selected) -->
+  <div class="subnav" id="subnav" role="navigation" aria-label="Sottocategorie">
+    <div class="subnav-inner">
+      <button class="back-btn" id="backBtn" aria-label="Torna alla selezione">&#8592;</button>
+      <div class="subnav-pills" id="subnavPills"></div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <!-- MACRO SELECTION VIEW -->
+    <div id="macroView">
+      <div class="macro-wrap" style="padding-top:28px;">
+        <div class="macro-row">
+          <button class="tab-btn" id="btnCucina" onclick="selectMacro('Cucina', this)">🍔 Cucina</button>
+          <button class="tab-btn" id="btnDrink"  onclick="selectMacro('Drink', this)">🍹 Drink</button>
+        </div>
+      </div>
+      <p class="macro-hint">Seleziona una categoria</p>
+    </div>
+
+    <!-- MENU CONTENT VIEW -->
+    <div id="menuView">
+      <div id="menuContainer"></div>
+    </div>
+
+  </div>
+
+  <footer>@blackoutpubcarpi</footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+
+    let _allItems      = [];   // tutti gli items disponibili
+    let _activeMacro   = null; // 'Cucina' | 'Drink'
+    let _observer      = null; // IntersectionObserver per scroll-spy
+
+    /* ── Socket ── */
+    socket.on('connect',    () => { document.getElementById('statusText').textContent = 'Live'; });
+    socket.on('disconnect', () => { document.getElementById('statusText').textContent = 'Offline'; });
+    socket.on('menu_aggiornato', items => {
+      _allItems = items || [];
+      if (_activeMacro) renderMenu(_activeMacro);
+    });
+
+    /* ── Initial fetch ── */
+    (async () => {
+      try {
+        const res = await fetch('/api/menu');
+        const data = await res.json();
+        if (data.success) _allItems = data.data;
+      } catch(e) { console.error('Init fetch error', e); }
+    })();
+
+    /* ── Macro selection ── */
+    function selectMacro(macro, btn) {
+      _activeMacro = macro;
+
+      // Swap views
+      document.getElementById('macroView').style.display = 'none';
+      document.getElementById('menuView').classList.add('visible');
+
+      // Show & update sticky nav
+      document.getElementById('subnav').classList.add('visible');
+
+      // Highlight button (in case re-selected)
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+
+      renderMenu(macro);
+    }
+
+    /* ── Back to macro picker ── */
+    document.getElementById('backBtn').addEventListener('click', () => {
+      _activeMacro = null;
+      document.getElementById('macroView').style.display = '';
+      document.getElementById('menuView').classList.remove('visible');
+      document.getElementById('menuContainer').innerHTML = '';
+      document.getElementById('subnav').classList.remove('visible');
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (_observer) { _observer.disconnect(); _observer = null; }
+    });
+
+    /* ── Render menu for given macro ── */
+    function renderMenu(macro) {
+      const filtered = _allItems.filter(i => i.macro_category === macro);
+      const container = document.getElementById('menuContainer');
+      container.innerHTML = '';
+
+      // Group by sub_category (preserving DB order)
+      const groups = [];
+      const seen = {};
+      filtered.forEach(item => {
+        if (!seen[item.sub_category]) {
+          seen[item.sub_category] = true;
+          groups.push({ sub: item.sub_category, items: [] });
+        }
+        groups[groups.length - 1].items.push(item);
+      });
+
+      // Fix: re-group properly (items above buckets into wrong group)
+      const grouped = {};
+      filtered.forEach(item => {
+        if (!grouped[item.sub_category]) grouped[item.sub_category] = [];
+        grouped[item.sub_category].push(item);
+      });
+      // Unique ordered sub_categories
+      const subCats = [];
+      filtered.forEach(item => {
+        if (!subCats.includes(item.sub_category)) subCats.push(item.sub_category);
+      });
+
+      if (!subCats.length) {
+        container.innerHTML = '<div class="list-empty">Nessun prodotto disponibile</div>';
+        buildSubnav([]);
+        return;
+      }
+
+      buildSubnav(subCats);
+
+      subCats.forEach(sub => {
+        const slug = slugify(sub);
+        const section = document.createElement('div');
+        section.className = 'cat-section';
+        section.id = 'sub-' + slug;
+
+        const heading = document.createElement('div');
+        heading.className = 'cat-heading';
+        heading.innerHTML =
+          '<span class="cat-heading-label">' + escHtml(sub) + '</span>' +
+          '<div class="cat-heading-line"></div>';
+        section.appendChild(heading);
+
+        grouped[sub].forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'item-row';
+
+          const info = document.createElement('div');
+          info.className = 'item-info';
+
+          const name = document.createElement('div');
+          name.className = 'item-name';
+          name.textContent = item.name;
+
+          info.appendChild(name);
+
+          if (item.description) {
+            const desc = document.createElement('div');
+            desc.className = 'item-desc';
+            desc.textContent = item.description;
+            info.appendChild(desc);
+          }
+
+          const price = document.createElement('div');
+          price.className = 'item-price';
+          price.textContent = '€' + parseFloat(item.price).toFixed(2);
+
+          row.appendChild(info);
+          row.appendChild(price);
+          section.appendChild(row);
+        });
+
+        container.appendChild(section);
+      });
+
+      // Init scroll-spy after render
+      requestAnimationFrame(() => initScrollSpy(subCats));
+    }
+
+    /* ── Build sticky sub-nav pills ── */
+    function buildSubnav(subCats) {
+      const pills = document.getElementById('subnavPills');
+      pills.innerHTML = '';
+      subCats.forEach((sub, i) => {
+        const slug = slugify(sub);
+        const btn = document.createElement('button');
+        btn.className = 'subnav-btn' + (i === 0 ? ' active' : '');
+        btn.dataset.slug = slug;
+        btn.textContent = sub;
+        btn.addEventListener('click', () => scrollToSection(slug));
+        pills.appendChild(btn);
+      });
+    }
+
+    function scrollToSection(slug) {
+      const target = document.getElementById('sub-' + slug);
+      if (!target) return;
+      // offset for sticky subnav height
+      const navH = document.getElementById('subnav').offsetHeight;
+      const top = target.getBoundingClientRect().top + window.scrollY - navH - 8;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+
+    /* ── Scroll-spy via IntersectionObserver ── */
+    function initScrollSpy(subCats) {
+      if (_observer) _observer.disconnect();
+
+      const navH = document.getElementById('subnav').offsetHeight;
+
+      _observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const slug = entry.target.id.replace('sub-', '');
+            document.querySelectorAll('.subnav-btn').forEach(btn => {
+              btn.classList.toggle('active', btn.dataset.slug === slug);
+            });
+            // Scroll the active pill into view horizontally
+            const activeBtn = document.querySelector('.subnav-btn.active');
+            if (activeBtn) activeBtn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' });
+          }
+        });
+      }, {
+        rootMargin: `-${navH + 4}px 0px -60% 0px`,
+        threshold: 0,
+      });
+
+      subCats.forEach(sub => {
+        const el = document.getElementById('sub-' + slugify(sub));
+        if (el) _observer.observe(el);
+      });
+    }
+
+    /* ── Utilities ── */
+    function slugify(str) {
+      return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    }
+    function escHtml(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+  </script>
+</body>
+</html>

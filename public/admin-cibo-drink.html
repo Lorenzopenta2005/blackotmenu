@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BlackOut Admin — Cibo &amp; Drink</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #f4f4f6; --surface: #ffffff; --border: #e2e2e8;
+      --text: #1a1a2e; --text-muted: #6b6b80;
+      --primary: #cc1133; --primary-dk: #a00d28;
+      --success: #16a34a; --success-bg: #dcfce7;
+      --danger: #dc2626; --danger-bg: #fee2e2;
+      --warning: #d97706; --warn-bg: #fef3c7;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.1);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,.12);
+      --radius: 10px;
+    }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+    .hidden { display: none !important; }
+
+    /* ── AUTH ── */
+    .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: radial-gradient(ellipse at 50% 0%, rgba(204,17,51,.06) 0%, transparent 70%), var(--bg); }
+    .auth-box { width: 100%; max-width: 380px; background: var(--surface); border-radius: 16px; padding: 40px 36px; box-shadow: var(--shadow-lg); }
+    .auth-logo { text-align: center; margin-bottom: 28px; }
+    .auth-logo h1 { font-family: 'Oswald', sans-serif; font-size: 2rem; letter-spacing: 4px; color: var(--primary); text-transform: uppercase; }
+    .auth-logo p { font-size: .8rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+    .form-group { margin-bottom: 18px; }
+    .form-group label { display: block; font-size: .85rem; font-weight: 500; margin-bottom: 7px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-size: .95rem; font-family: 'Inter', sans-serif; transition: border-color .2s; background: var(--bg); color: var(--text);
+    }
+    .form-group textarea { resize: vertical; min-height: 68px; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+    .btn-login { width: 100%; padding: 12px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-size: .95rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .btn-login:hover { background: var(--primary-dk); }
+    .auth-error { color: var(--danger); font-size: .85rem; margin-top: 10px; text-align: center; }
+
+    /* ── TOPBAR ── */
+    .dashboard { min-height: 100vh; }
+    .topbar { background: var(--surface); border-bottom: 2px solid var(--border); padding: 0 24px; height: 58px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; box-shadow: var(--shadow-sm); }
+    .topbar-logo { font-family: 'Oswald', sans-serif; font-size: 1.15rem; letter-spacing: 2.5px; color: var(--primary); text-transform: uppercase; }
+    .topbar-sub { font-size: .72rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-left: 10px; }
+    .topbar-left { display: flex; align-items: baseline; gap: 0; }
+    .btn-logout { padding: 7px 16px; background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(220,38,38,.2); border-radius: 6px; font-size: .82rem; font-weight: 600; cursor: pointer; transition: background .2s; }
+    .btn-logout:hover { background: #fca5a5; }
+    .main { max-width: 1280px; margin: 0 auto; padding: 28px 20px 60px; }
+
+    /* ── SECTION CARD ── */
+    .sec-card { background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 32px; overflow: hidden; }
+    .sec-card-header { padding: 18px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+    .sec-card-title { font-family: 'Oswald', sans-serif; font-size: 1.1rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text); }
+    .sec-card-subtitle { font-size: .82rem; color: var(--text-muted); }
+    .sec-card-body { padding: 24px; }
+
+    /* ── ADD FORM ── */
+    .add-form {
+      background: var(--bg);
+      border: 1.5px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      margin-bottom: 24px;
+    }
+    .add-form-title { font-family: 'Oswald', sans-serif; font-size: .95rem; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 16px; }
+    .add-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .add-form-grid .span-2 { grid-column: 1 / -1; }
+    .add-form-row { display: flex; gap: 10px; align-items: flex-end; margin-top: 14px; }
+    .btn { padding: 9px 18px; border: none; border-radius: 7px; font-size: .85rem; font-weight: 600; cursor: pointer; transition: opacity .2s, transform .1s; font-family: 'Inter', sans-serif; }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-primary:hover { background: var(--primary-dk); }
+    .btn-ghost { background: var(--border); color: var(--text-muted); }
+    .btn-ghost:hover { background: #d0d0d8; }
+    .btn-danger { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(220,38,38,.2); }
+    .btn-danger:hover { background: #fca5a5; }
+    .btn-sm { padding: 6px 12px; font-size: .78rem; }
+
+    /* ── ITEMS LIST ── */
+    .items-list { display: flex; flex-direction: column; gap: 10px; }
+    .item-card {
+      display: flex; align-items: center; gap: 12px; padding: 14px 18px;
+      border: 1.5px solid var(--border); border-left: 4px solid var(--border);
+      border-radius: var(--radius); transition: border-color .2s, box-shadow .2s;
+      flex-wrap: wrap;
+    }
+    .item-card:hover { box-shadow: var(--shadow-md); }
+    .item-card.disponibile { border-left-color: var(--success); }
+    .item-card.esaurito    { border-left-color: #d1d5db; opacity: .8; }
+
+    .item-info { flex: 1; min-width: 180px; }
+    .item-nome { font-weight: 600; font-size: .95rem; }
+    .item-meta { font-size: .8rem; color: var(--text-muted); margin-top: 2px; }
+    .item-sub-badge {
+      display: inline-block; margin-top: 4px; padding: 1px 8px;
+      background: rgba(204,17,51,.08); border: 1px solid rgba(204,17,51,.2);
+      border-radius: 20px; font-size: .68rem; font-weight: 600; color: var(--primary);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    .item-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .toggle-btn { padding: 7px 16px; border: none; border-radius: 20px; font-size: .8rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: transform .1s; }
+    .toggle-btn:active { transform: scale(.95); }
+    .toggle-btn.on  { background: var(--success-bg); color: var(--success); border: 1px solid rgba(22,163,74,.25); }
+    .toggle-btn.off { background: var(--danger-bg);  color: var(--danger);  border: 1px solid rgba(220,38,38,.2); }
+
+    /* ── INLINE EDIT ── */
+    .edit-panel {
+      width: 100%;
+      margin-top: 12px;
+      padding: 16px;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      display: none;
+    }
+    .edit-panel.open { display: block; }
+    .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .edit-grid .span-2 { grid-column: 1 / -1; }
+    .edit-label { display: block; font-size: .8rem; font-weight: 500; margin-bottom: 5px; color: var(--text-muted); }
+    .edit-input { width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 7px; font-size: .88rem; font-family: 'Inter', sans-serif; background: var(--surface); color: var(--text); transition: border-color .2s; }
+    .edit-input:focus { outline: none; border-color: var(--primary); }
+    .edit-row { display: flex; gap: 8px; margin-top: 12px; }
+
+    /* ── EMPTY / LOADING ── */
+    .list-empty { text-align: center; padding: 32px 0; color: var(--text-muted); font-size: .82rem; font-style: italic; }
+
+    /* ── NOTIFICATION ── */
+    .notification { position: fixed; top: 20px; right: 20px; padding: 14px 22px; border-radius: 8px; font-size: .9rem; font-weight: 500; box-shadow: var(--shadow-lg); z-index: 9999; animation: slideIn .25s ease; max-width: 320px; }
+    @keyframes slideIn { from { transform: translateX(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+    .notif-success { background: var(--success-bg); color: var(--success); border: 1px solid rgba(22,163,74,.3); }
+    .notif-error   { background: var(--danger-bg);  color: var(--danger);  border: 1px solid rgba(220,38,38,.25); }
+
+    @media (max-width: 768px) {
+      .add-form-grid { grid-template-columns: 1fr; }
+      .edit-grid { grid-template-columns: 1fr; }
+      .main { padding: 16px 14px 48px; }
+      .item-card { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- AUTH -->
+  <div id="authWrap" class="auth-wrap">
+    <div class="auth-box">
+      <div class="auth-logo">
+        <h1>BlackOut</h1>
+        <p>Admin — Cibo &amp; Drink</p>
+      </div>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="passwordInput">Password</label>
+          <input type="password" id="passwordInput" placeholder="Inserisci la password" required autofocus>
+        </div>
+        <button type="submit" class="btn-login">Accedi</button>
+        <div id="authError" class="auth-error hidden"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="dashboard hidden">
+    <nav class="topbar">
+      <div class="topbar-left">
+        <span class="topbar-logo">BlackOut Admin</span>
+        <span class="topbar-sub">Cibo &amp; Drink</span>
+      </div>
+      <div>
+        <button class="btn-logout" onclick="logout()">Esci</button>
+      </div>
+    </nav>
+
+    <div class="main">
+
+      <!-- CUCINA -->
+      <div class="sec-card" id="cardCucina">
+        <div class="sec-card-header">
+          <span class="sec-card-title">🍔 Cucina</span>
+          <span class="sec-card-subtitle" id="subtitleCucina"></span>
+        </div>
+        <div class="sec-card-body">
+          <!-- ADD FORM -->
+          <div class="add-form" id="addFormCucina">
+            <div class="add-form-title">+ Aggiungi Piatto</div>
+            <div class="add-form-grid">
+              <div class="form-group">
+                <label>Nome *</label>
+                <input type="text" id="cucina-name" placeholder="Es. BlackOut Burger">
+              </div>
+              <div class="form-group">
+                <label>Sottocategoria *</label>
+                <input type="text" id="cucina-sub" placeholder="Es. Hamburger, Fuori Menu…">
+              </div>
+              <div class="form-group span-2">
+                <label>Descrizione</label>
+                <textarea id="cucina-desc" placeholder="Ingredienti e dettagli…"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Prezzo (€) *</label>
+                <input type="number" id="cucina-price" step="0.50" min="0" placeholder="0.00">
+              </div>
+              <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+                <input type="checkbox" id="cucina-avail" checked style="width:18px;height:18px;accent-color:var(--primary);">
+                <label for="cucina-avail" style="font-size:.88rem;margin:0;">Disponibile</label>
+              </div>
+            </div>
+            <div class="add-form-row">
+              <button class="btn btn-primary" onclick="addItem('Cucina')">Aggiungi</button>
+              <button class="btn btn-ghost"   onclick="clearAddForm('cucina')">Pulisci</button>
+            </div>
+          </div>
+          <!-- LIST -->
+          <div class="items-list" id="listCucina"><div class="list-empty">Caricamento…</div></div>
+        </div>
+      </div>
+
+      <!-- DRINK -->
+      <div class="sec-card" id="cardDrink">
+        <div class="sec-card-header">
+          <span class="sec-card-title">🍹 Drink</span>
+          <span class="sec-card-subtitle" id="subtitleDrink"></span>
+        </div>
+        <div class="sec-card-body">
+          <!-- ADD FORM -->
+          <div class="add-form" id="addFormDrink">
+            <div class="add-form-title">+ Aggiungi Drink</div>
+            <div class="add-form-grid">
+              <div class="form-group">
+                <label>Nome *</label>
+                <input type="text" id="drink-name" placeholder="Es. Negroni">
+              </div>
+              <div class="form-group">
+                <label>Sottocategoria *</label>
+                <input type="text" id="drink-sub" placeholder="Es. Cocktail, Gin, Vini…">
+              </div>
+              <div class="form-group span-2">
+                <label>Descrizione</label>
+                <textarea id="drink-desc" placeholder="Ingredienti e dettagli…"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Prezzo (€) *</label>
+                <input type="number" id="drink-price" step="0.50" min="0" placeholder="0.00">
+              </div>
+              <div class="form-group" style="display:flex;align-items:center;gap:10px;padding-top:28px;">
+                <input type="checkbox" id="drink-avail" checked style="width:18px;height:18px;accent-color:var(--primary);">
+                <label for="drink-avail" style="font-size:.88rem;margin:0;">Disponibile</label>
+              </div>
+            </div>
+            <div class="add-form-row">
+              <button class="btn btn-primary" onclick="addItem('Drink')">Aggiungi</button>
+              <button class="btn btn-ghost"   onclick="clearAddForm('drink')">Pulisci</button>
+            </div>
+          </div>
+          <!-- LIST -->
+          <div class="items-list" id="listDrink"><div class="list-empty">Caricamento…</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let adminPassword = null;
+    let menuItems     = [];   // tutti gli items (admin view)
+
+    const authWrap  = document.getElementById('authWrap');
+    const dashboard = document.getElementById('dashboard');
+    const loginForm = document.getElementById('loginForm');
+    const authError = document.getElementById('authError');
+
+    /* ── LOGIN ── */
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const pw = document.getElementById('passwordInput').value.trim();
+      authError.classList.add('hidden');
+      try {
+        const res  = await fetch('/api/admin/menu', { headers: { 'X-Admin-Password': pw } });
+        const data = await res.json();
+        if (!data.success) {
+          authError.textContent = 'Password non valida';
+          authError.classList.remove('hidden');
+          return;
+        }
+        adminPassword = pw;
+        menuItems = data.data;
+        authWrap.classList.add('hidden');
+        dashboard.classList.remove('hidden');
+        renderAll();
+        notify('Accesso effettuato', 'success');
+      } catch {
+        authError.textContent = 'Errore di connessione al server';
+        authError.classList.remove('hidden');
+      }
+    });
+
+    function logout() {
+      adminPassword = null; menuItems = [];
+      dashboard.classList.add('hidden');
+      authWrap.classList.remove('hidden');
+      document.getElementById('passwordInput').value = '';
+    }
+
+    /* ── RENDER ── */
+    function renderAll() {
+      renderSection('Cucina');
+      renderSection('Drink');
+    }
+
+    function renderSection(macro) {
+      const key   = macro.toLowerCase();
+      const list  = document.getElementById('list' + macro);
+      const sub   = document.getElementById('subtitle' + macro);
+      const items = menuItems.filter(i => i.macro_category === macro);
+      const avail = items.filter(i => i.available).length;
+
+      sub.textContent = avail + '/' + items.length + ' disponibili';
+      list.innerHTML  = '';
+
+      if (!items.length) {
+        list.innerHTML = '<div class="list-empty">Nessun prodotto in questa categoria.</div>';
+        return;
+      }
+
+      // Group by sub_category for visual clarity
+      const subCats = [];
+      items.forEach(i => { if (!subCats.includes(i.sub_category)) subCats.push(i.sub_category); });
+
+      subCats.forEach(sub_cat => {
+        const group = items.filter(i => i.sub_category === sub_cat);
+
+        const groupLabel = document.createElement('div');
+        groupLabel.style.cssText = 'font-family:"Oswald",sans-serif;font-size:.8rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);padding:8px 0 4px;border-top:1px solid var(--border);margin-top:8px;';
+        groupLabel.textContent = sub_cat;
+        list.appendChild(groupLabel);
+
+        group.forEach(item => list.appendChild(buildItemCard(item)));
+      });
+    }
+
+    function buildItemCard(item) {
+      const card = document.createElement('div');
+      card.className = 'item-card ' + (item.available ? 'disponibile' : 'esaurito');
+      card.id = 'card-' + item.id;
+
+      // Info
+      const info = document.createElement('div');
+      info.className = 'item-info';
+      const nome = document.createElement('div'); nome.className = 'item-nome'; nome.textContent = item.name;
+      const meta = document.createElement('div'); meta.className = 'item-meta';
+      meta.textContent = '€' + parseFloat(item.price).toFixed(2) + (item.description ? ' — ' + item.description : '');
+      const badge = document.createElement('div'); badge.className = 'item-sub-badge'; badge.textContent = item.sub_category;
+      info.appendChild(nome); info.appendChild(meta); info.appendChild(badge);
+      card.appendChild(info);
+
+      // Actions
+      const actions = document.createElement('div'); actions.className = 'item-actions';
+
+      const togBtn = document.createElement('button');
+      togBtn.className = 'toggle-btn ' + (item.available ? 'on' : 'off');
+      togBtn.textContent = item.available ? '✓ Disponibile' : '✗ Non disponibile';
+      togBtn.addEventListener('click', () => toggleItem(item.id));
+      actions.appendChild(togBtn);
+
+      const editBtn = document.createElement('button');
+      editBtn.className = 'btn btn-ghost btn-sm';
+      editBtn.textContent = '✏ Modifica';
+      editBtn.addEventListener('click', () => toggleEditPanel(item, editPanel));
+      actions.appendChild(editBtn);
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'btn btn-danger btn-sm';
+      delBtn.textContent = '🗑 Elimina';
+      delBtn.addEventListener('click', () => deleteItem(item.id, item.name));
+      actions.appendChild(delBtn);
+
+      card.appendChild(actions);
+
+      // Inline edit panel
+      const editPanel = buildEditPanel(item);
+      card.appendChild(editPanel);
+
+      return card;
+    }
+
+    function buildEditPanel(item) {
+      const panel = document.createElement('div');
+      panel.className = 'edit-panel';
+      panel.id = 'edit-' + item.id;
+
+      panel.innerHTML = `
+        <div class="edit-grid">
+          <div>
+            <label class="edit-label">Nome *</label>
+            <input class="edit-input" id="e-name-${item.id}" type="text" value="${escAttr(item.name)}">
+          </div>
+          <div>
+            <label class="edit-label">Sottocategoria *</label>
+            <input class="edit-input" id="e-sub-${item.id}" type="text" value="${escAttr(item.sub_category)}">
+          </div>
+          <div class="span-2">
+            <label class="edit-label">Descrizione</label>
+            <textarea class="edit-input" id="e-desc-${item.id}">${escHtml(item.description || '')}</textarea>
+          </div>
+          <div>
+            <label class="edit-label">Prezzo (€) *</label>
+            <input class="edit-input" id="e-price-${item.id}" type="number" step="0.50" min="0" value="${parseFloat(item.price).toFixed(2)}">
+          </div>
+          <div>
+            <label class="edit-label">Macro categoria *</label>
+            <select class="edit-input" id="e-macro-${item.id}">
+              <option value="Cucina" ${item.macro_category === 'Cucina' ? 'selected' : ''}>Cucina</option>
+              <option value="Drink"  ${item.macro_category === 'Drink'  ? 'selected' : ''}>Drink</option>
+            </select>
+          </div>
+        </div>
+        <div class="edit-row">
+          <button class="btn btn-primary btn-sm" onclick="saveEdit(${item.id})">Salva</button>
+          <button class="btn btn-ghost btn-sm"   onclick="closeEditPanel(${item.id})">Annulla</button>
+        </div>
+      `;
+      return panel;
+    }
+
+    function toggleEditPanel(item, panel) {
+      const isOpen = panel.classList.contains('open');
+      // Close all open panels first
+      document.querySelectorAll('.edit-panel.open').forEach(p => p.classList.remove('open'));
+      if (!isOpen) panel.classList.add('open');
+    }
+
+    function closeEditPanel(id) {
+      const p = document.getElementById('edit-' + id);
+      if (p) p.classList.remove('open');
+    }
+
+    /* ── ADD ITEM ── */
+    async function addItem(macro) {
+      const key = macro.toLowerCase();
+      const name  = document.getElementById(key + '-name').value.trim();
+      const sub   = document.getElementById(key + '-sub').value.trim();
+      const desc  = document.getElementById(key + '-desc').value.trim();
+      const price = parseFloat(document.getElementById(key + '-price').value);
+      const avail = document.getElementById(key + '-avail').checked;
+
+      if (!name || !sub || isNaN(price) || price < 0) {
+        notify('Compila tutti i campi obbligatori', 'error'); return;
+      }
+
+      try {
+        const res  = await fetch('/api/admin/menu', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+          body: JSON.stringify({ name, sub_category: sub, description: desc || null, price, macro_category: macro, available: avail }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          menuItems.push(data.data);
+          renderAll();
+          clearAddForm(key);
+          notify(name + ' aggiunto', 'success');
+        } else notify(data.message || 'Errore', 'error');
+      } catch { notify('Errore di connessione', 'error'); }
+    }
+
+    function clearAddForm(key) {
+      ['name','sub','desc','price'].forEach(f => {
+        const el = document.getElementById(key + '-' + f);
+        if (el) el.value = '';
+      });
+      const av = document.getElementById(key + '-avail');
+      if (av) av.checked = true;
+    }
+
+    /* ── SAVE EDIT ── */
+    async function saveEdit(id) {
+      const name  = document.getElementById('e-name-'  + id).value.trim();
+      const sub   = document.getElementById('e-sub-'   + id).value.trim();
+      const desc  = document.getElementById('e-desc-'  + id).value.trim();
+      const price = parseFloat(document.getElementById('e-price-' + id).value);
+      const macro = document.getElementById('e-macro-' + id).value;
+
+      if (!name || !sub || isNaN(price) || price < 0) {
+        notify('Compila tutti i campi obbligatori', 'error'); return;
+      }
+
+      try {
+        const res  = await fetch('/api/admin/menu/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+          body: JSON.stringify({ name, sub_category: sub, description: desc || null, price, macro_category: macro }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          const idx = menuItems.findIndex(i => i.id === id);
+          if (idx !== -1) menuItems[idx] = data.data;
+          renderAll();
+          notify(name + ' aggiornato', 'success');
+        } else notify(data.message || 'Errore', 'error');
+      } catch { notify('Errore di connessione', 'error'); }
+    }
+
+    /* ── TOGGLE ── */
+    async function toggleItem(id) {
+      try {
+        const res  = await fetch('/api/admin/menu/' + id + '/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': adminPassword },
+        });
+        const data = await res.json();
+        if (data.success) {
+          const idx = menuItems.findIndex(i => i.id === id);
+          if (idx !== -1) menuItems[idx].available = data.data.available;
+          renderAll();
+          notify(data.data.name + ': ' + (data.data.available ? 'Disponibile' : 'Non disponibile'), 'success');
+        } else notify(data.message || 'Errore', 'error');
+      } catch { notify('Errore di connessione', 'error'); }
+    }
+
+    /* ── DELETE ── */
+    async function deleteItem(id, name) {
+      if (!confirm('Eliminare "' + name + '"?')) return;
+      try {
+        const res  = await fetch('/api/admin/menu/' + id, {
+          method: 'DELETE',
+          headers: { 'X-Admin-Password': adminPassword },
+        });
+        const data = await res.json();
+        if (data.success) {
+          menuItems = menuItems.filter(i => i.id !== id);
+          renderAll();
+          notify(name + ' eliminato', 'success');
+        } else notify(data.message || 'Errore', 'error');
+      } catch { notify('Errore di connessione', 'error'); }
+    }
+
+    /* ── NOTIFY ── */
+    function notify(msg, type) {
+      const el = document.createElement('div');
+      el.className = 'notification notif-' + (type || 'success');
+      el.textContent = msg;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3200);
+    }
+
+    /* ── UTILS ── */
+    function escHtml(str) {
+      return (str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+    function escAttr(str) {
+      return (str || '').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,288 @@
+require('dotenv').config();
+const express         = require('express');
+const { createServer } = require('http');
+const { Server }      = require('socket.io');
+const helmet          = require('helmet');
+const path            = require('path');
+const fs              = require('fs');
+const { createClient } = require('@supabase/supabase-js');
+
+const PORT           = process.env.PORT           || 3001;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+const SUPABASE_URL   = process.env.SUPABASE_URL;
+const SUPABASE_KEY   = process.env.SUPABASE_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error('[FATAL] SUPABASE_URL e SUPABASE_KEY sono obbligatorie nel file .env');
+  process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// =============================================================================
+// LOGGER
+// =============================================================================
+
+const logger = {
+  info:  (msg)      => console.log(`[INFO]  ${new Date().toISOString()} ${msg}`),
+  warn:  (msg)      => console.warn(`[WARN]  ${new Date().toISOString()} ${msg}`),
+  error: (msg, err) => console.error(`[ERROR] ${new Date().toISOString()} ${msg}`, err || ''),
+};
+
+// =============================================================================
+// INIT DB — verifica che la tabella esista
+// =============================================================================
+
+async function initDB() {
+  const { data, error } = await supabase
+    .from('menu_generale')
+    .select('id')
+    .limit(1);
+
+  if (error) {
+    logger.error('Tabella "menu_generale" non trovata:', error);
+    logger.error('Esegui lo script SQL in supabase/menu_generale.sql prima di avviare il server.');
+    process.exit(1);
+  }
+
+  logger.info(`Database pronto — ${data.length > 0 ? 'tabella con dati' : 'tabella vuota (aggiungi dati dall\'admin)'}.`);
+}
+
+// =============================================================================
+// DATA ACCESS LAYER
+// =============================================================================
+
+const db = {
+
+  getMenuDisponibile: async () => {
+    const { data, error } = await supabase
+      .from('menu_generale')
+      .select('*')
+      .eq('available', true)
+      .order('macro_category')
+      .order('sub_category')
+      .order('id');
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  getMenuAdmin: async () => {
+    const { data, error } = await supabase
+      .from('menu_generale')
+      .select('*')
+      .order('macro_category')
+      .order('sub_category')
+      .order('id');
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  addMenuItem: async ({ name, description, price, macro_category, sub_category, available }) => {
+    if (!name || !price || !macro_category || !sub_category)
+      throw new Error('Campi obbligatori: name, price, macro_category, sub_category');
+    if (!['Cucina', 'Drink'].includes(macro_category))
+      throw new Error('macro_category deve essere "Cucina" o "Drink"');
+    const { data, error } = await supabase
+      .from('menu_generale')
+      .insert({
+        name,
+        description: description || null,
+        price,
+        macro_category,
+        sub_category,
+        available: available !== false,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  updateMenuItem: async (id, fields) => {
+    const allowed = ['name', 'description', 'price', 'macro_category', 'sub_category', 'available'];
+    const patch = {};
+    for (const k of allowed) { if (fields[k] !== undefined) patch[k] = fields[k]; }
+    if (!Object.keys(patch).length) throw new Error('Nessun campo da aggiornare');
+    if (patch.macro_category && !['Cucina', 'Drink'].includes(patch.macro_category))
+      throw new Error('macro_category non valida');
+    const { data, error } = await supabase
+      .from('menu_generale')
+      .update(patch)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return data;
+  },
+
+  deleteMenuItem: async (id) => {
+    const { error } = await supabase
+      .from('menu_generale')
+      .delete()
+      .eq('id', id);
+    if (error) throw new Error(error.message);
+  },
+
+  toggleMenuItem: async (id) => {
+    const { data: item, error: errRead } = await supabase
+      .from('menu_generale')
+      .select('id, name, available')
+      .eq('id', id)
+      .single();
+    if (errRead || !item) throw new Error('Voce menu non trovata');
+    const { data: updated, error: errUpd } = await supabase
+      .from('menu_generale')
+      .update({ available: !item.available })
+      .eq('id', id)
+      .select()
+      .single();
+    if (errUpd) throw new Error(errUpd.message);
+    return updated;
+  },
+};
+
+// =============================================================================
+// APP SETUP
+// =============================================================================
+
+const app        = express();
+const httpServer = createServer(app);
+const io         = new Server(httpServer, {
+  cors: { origin: process.env.NODE_ENV === 'production' ? false : '*', methods: ['GET', 'POST'] },
+});
+
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(__dirname));
+
+// ── HTML routes ──
+const serveHtml = (file) => (req, res) => {
+  const inPublic = path.join(__dirname, 'public', file);
+  const inRoot   = path.join(__dirname, file);
+  res.sendFile(fs.existsSync(inPublic) ? inPublic : inRoot);
+};
+
+app.get('/',                 serveHtml('cibo-drink.html'));
+app.get('/cibo-drink',       serveHtml('cibo-drink.html'));
+app.get('/admin',            serveHtml('admin-cibo-drink.html'));
+app.get('/admin-cibo-drink', serveHtml('admin-cibo-drink.html'));
+
+// =============================================================================
+// MIDDLEWARE — auth guard
+// =============================================================================
+
+const requireAdmin = (req, res, next) => {
+  if (req.headers['x-admin-password'] !== ADMIN_PASSWORD) {
+    logger.warn(`Accesso non autorizzato da ${req.ip}`);
+    return res.status(401).json({ success: false, message: 'Password non valida' });
+  }
+  next();
+};
+
+// =============================================================================
+// ROUTES — PUBLIC
+// =============================================================================
+
+// Tutti gli items disponibili (usato da cibo-drink.html)
+app.get('/api/menu', async (req, res) => {
+  try { res.json({ success: true, data: await db.getMenuDisponibile() }); }
+  catch (err) { logger.error('GET /api/menu', err); res.status(500).json({ success: false, message: err.message }); }
+});
+
+// =============================================================================
+// ROUTES — ADMIN
+// =============================================================================
+
+// Tutti gli items (inclusi non disponibili)
+app.get('/api/admin/menu', requireAdmin, async (req, res) => {
+  try { res.json({ success: true, data: await db.getMenuAdmin() }); }
+  catch (err) { logger.error('GET /api/admin/menu', err); res.status(500).json({ success: false, message: err.message }); }
+});
+
+// Aggiungi voce
+app.post('/api/admin/menu', requireAdmin, async (req, res) => {
+  try {
+    const { name, description, price, macro_category, sub_category, available } = req.body;
+    const item = await db.addMenuItem({
+      name, description,
+      price: parseFloat(price),
+      macro_category, sub_category, available,
+    });
+    io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    logger.info(`Menu aggiunto: ${item.name} [${item.macro_category}/${item.sub_category}]`);
+    res.status(201).json({ success: true, data: item });
+  } catch (err) { logger.error('POST /api/admin/menu', err); res.status(400).json({ success: false, message: err.message }); }
+});
+
+// Aggiorna voce esistente
+app.put('/api/admin/menu/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'ID non valido' });
+    const updated = await db.updateMenuItem(id, req.body);
+    io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    logger.info(`Menu aggiornato: id=${id}`);
+    res.json({ success: true, data: updated });
+  } catch (err) { logger.error('PUT /api/admin/menu/:id', err); res.status(400).json({ success: false, message: err.message }); }
+});
+
+// Elimina voce
+app.delete('/api/admin/menu/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'ID non valido' });
+    await db.deleteMenuItem(id);
+    io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    logger.info(`Menu eliminato: id=${id}`);
+    res.json({ success: true, message: 'Voce eliminata' });
+  } catch (err) { logger.error('DELETE /api/admin/menu/:id', err); res.status(400).json({ success: false, message: err.message }); }
+});
+
+// Toggle disponibile
+app.post('/api/admin/menu/:id/toggle', requireAdmin, async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (isNaN(id)) return res.status(400).json({ success: false, message: 'ID non valido' });
+    const updated = await db.toggleMenuItem(id);
+    io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    logger.info(`Menu toggle: id=${id} → available=${updated.available}`);
+    res.json({ success: true, data: updated });
+  } catch (err) { logger.error('POST /api/admin/menu/:id/toggle', err); res.status(400).json({ success: false, message: err.message }); }
+});
+
+// =============================================================================
+// SOCKET.IO
+// =============================================================================
+
+io.on('connection', async (socket) => {
+  logger.info(`Socket connesso: ${socket.id}`);
+  try {
+    socket.emit('menu_aggiornato', await db.getMenuDisponibile());
+  } catch (err) {
+    logger.error('Socket init error', err);
+  }
+  socket.on('disconnect', () => logger.info(`Socket disconnesso: ${socket.id}`));
+});
+
+// =============================================================================
+// ERROR HANDLER & START
+// =============================================================================
+
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error', err);
+  res.status(500).json({ success: false, message: 'Errore interno del server' });
+});
+
+initDB().then(() => {
+  httpServer.listen(PORT, () => {
+    logger.info(`Server avviato su :${PORT}`);
+    logger.info(`Cliente → http://localhost:${PORT}/`);
+    logger.info(`Admin   → http://localhost:${PORT}/admin`);
+  });
+});
+
+process.on('SIGTERM', () => httpServer.close(() => process.exit(0)));
