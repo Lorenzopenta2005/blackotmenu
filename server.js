@@ -1,13 +1,13 @@
-require('dotenv').config();
+const path            = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 const express         = require('express');
 const { createServer } = require('http');
 const { Server }      = require('socket.io');
 const helmet          = require('helmet');
-const path            = require('path');
 const fs              = require('fs');
 const { createClient } = require('@supabase/supabase-js');
 
-const PORT           = process.env.PORT           || 3001;
+const PORT           = process.env.PORT           || 3002;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 const SUPABASE_URL   = process.env.SUPABASE_URL;
 const SUPABASE_KEY   = process.env.SUPABASE_KEY;
@@ -61,6 +61,7 @@ const db = {
       .eq('available', true)
       .order('macro_category')
       .order('sub_category')
+      .order('ordine')
       .order('id');
     if (error) throw new Error(error.message);
     return data;
@@ -72,12 +73,13 @@ const db = {
       .select('*')
       .order('macro_category')
       .order('sub_category')
+      .order('ordine')
       .order('id');
     if (error) throw new Error(error.message);
     return data;
   },
 
-  addMenuItem: async ({ name, description, price, macro_category, sub_category, available }) => {
+  addMenuItem: async ({ name, description, price, macro_category, sub_category, badge, available, immagine_url, allergeni, tipologia, ordine }) => {
     if (!name || !price || !macro_category || !sub_category)
       throw new Error('Campi obbligatori: name, price, macro_category, sub_category');
     if (!['Cucina', 'Drink'].includes(macro_category))
@@ -90,6 +92,11 @@ const db = {
         price,
         macro_category,
         sub_category,
+        badge: badge || null,
+        immagine_url: immagine_url || null,
+        allergeni: allergeni || null,
+        tipologia: tipologia || null,
+        ordine: ordine || 0,
         available: available !== false,
       })
       .select()
@@ -99,9 +106,13 @@ const db = {
   },
 
   updateMenuItem: async (id, fields) => {
-    const allowed = ['name', 'description', 'price', 'macro_category', 'sub_category', 'available'];
+    const allowed = ['name', 'description', 'price', 'macro_category', 'sub_category', 'badge', 'available', 'immagine_url', 'allergeni', 'tipologia', 'ordine'];
     const patch = {};
     for (const k of allowed) { if (fields[k] !== undefined) patch[k] = fields[k]; }
+    if (patch.badge !== undefined) patch.badge = patch.badge || null;
+    if (patch.immagine_url !== undefined) patch.immagine_url = patch.immagine_url || null;
+    if (patch.tipologia !== undefined) patch.tipologia = patch.tipologia || null;
+    if (patch.allergeni !== undefined) patch.allergeni = Array.isArray(patch.allergeni) && patch.allergeni.length ? patch.allergeni : null;
     if (!Object.keys(patch).length) throw new Error('Nessun campo da aggiornare');
     if (patch.macro_category && !['Cucina', 'Drink'].includes(patch.macro_category))
       throw new Error('macro_category non valida');
@@ -114,6 +125,19 @@ const db = {
     if (error) throw new Error(error.message);
     if (!data) throw new Error('Nessuna voce trovata da aggiornare');
     return data;
+  },
+
+  reorderMenuItems: async (updates) => {
+    // updates is an array of { id, ordine }
+    if (!Array.isArray(updates) || updates.length === 0) return true;
+    // Purtroppo supabase js non ha un vero batch update semplice, facciamo un loop
+    const promises = updates.map(u => 
+      supabase.from('menu_generale').update({ ordine: u.ordine }).eq('id', u.id)
+    );
+    const results = await Promise.all(promises);
+    const errors = results.filter(r => r.error).map(r => r.error.message);
+    if (errors.length > 0) throw new Error('Errore durante il riordinamento: ' + errors.join(', '));
+    return true;
   },
 
   deleteMenuItem: async (id) => {
@@ -213,11 +237,12 @@ app.get('/api/admin/menu', requireAdmin, async (req, res) => {
 // Aggiungi voce
 app.post('/api/admin/menu', requireAdmin, async (req, res) => {
   try {
-    const { name, description, price, macro_category, sub_category, available } = req.body;
+    const { name, description, price, macro_category, sub_category, badge, available, immagine_url, allergeni } = req.body;
     const item = await db.addMenuItem({
       name, description,
       price: parseFloat(price),
-      macro_category, sub_category, available,
+      macro_category, sub_category, badge, available, immagine_url,
+      allergeni: Array.isArray(allergeni) ? allergeni : null,
     });
     if (!item) throw new Error('Salvataggio fallito. Verifica la service_role key nel file .env.');
     io.emit('menu_aggiornato', await db.getMenuDisponibile());
@@ -225,6 +250,19 @@ app.post('/api/admin/menu', requireAdmin, async (req, res) => {
     logger.info(`Menu aggiunto: ${item.name} [${item.macro_category}/${item.sub_category}]`);
     res.status(201).json({ success: true, data: item });
   } catch (err) { logger.error('POST /api/admin/menu', err); res.status(400).json({ success: false, message: err.message }); }
+});
+
+// Riordina voci
+app.put('/api/admin/menu/reorder', requireAdmin, async (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!updates) return res.status(400).json({ success: false, message: 'Nessun aggiornamento fornito' });
+    await db.reorderMenuItems(updates);
+    io.emit('menu_aggiornato', await db.getMenuDisponibile());
+    io.emit('admin_menu_aggiornato', await db.getMenuAdmin());
+    logger.info(`Menu riordinato (${updates.length} voci)`);
+    res.json({ success: true, message: 'Riordinamento completato' });
+  } catch (err) { logger.error('PUT /api/admin/menu/reorder', err); res.status(400).json({ success: false, message: err.message }); }
 });
 
 // Aggiorna voce esistente
